@@ -1,0 +1,37 @@
+name: Format Code
+
+on: [pull_request, workflow_dispatch]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - name: go fmt
+              run: go fmt
+            - name: clang-format
+              run: clang-format -i --verbose -style=Chromium v8go.h v8go.cc
+            - name: Handle format changes
+              env:
+                GIT_AUTHOR_NAME: Github Actions
+                GIT_AUTHOR_EMAIL: noreply@github.com
+                GIT_COMMITTER_NAME: Github Actions
+                GIT_COMMITTER_EMAIL: noreply@github.com
+              run: |
+                PUSH_ACCESS=
+                if ! git diff --no-patch --exit-code; then
+                  if ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.clone_url == github.event.pull_request.base.repo.clone_url }}; then
+                    git commit -a -m 'Format code'
+                    head_branch='${{ github.head_ref || github.ref }}'
+                    git checkout -b "$head_branch"
+                    git push origin "$head_branch"
+                  else
+                    echo 'Missing code formatting.'
+                    echo 'Use `go fmt && go generate` to apply them locally, or apply the following diff'
+                    echo '```diff'
+                    git diff
+                    echo '```'
+                    exit 1
+                  fi
+                fi
