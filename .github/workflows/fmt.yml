@@ -8,6 +8,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
+              with:
+                ref: ${{ github.head_ref || github.ref }}
             - name: go fmt
               run: go fmt
             - name: clang-format
@@ -22,9 +24,8 @@ jobs:
                 if ! git diff --no-patch --exit-code; then
                   if ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.clone_url == github.event.pull_request.base.repo.clone_url }}; then
                     git commit -a -m 'Format code'
-                    head_branch='${{ github.head_ref || github.ref }}'
-                    git checkout -b "$head_branch"
-                    git push origin "$head_branch"
+                    git rev-parse --abbrev-ref HEAD # temporary for debugging
+                    git push origin '${{ github.head_ref || github.ref }}'
                   else
                     echo 'Missing code formatting changes:'
                     echo '```diff'
